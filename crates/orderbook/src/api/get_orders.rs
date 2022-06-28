@@ -1,11 +1,9 @@
-use crate::{
-    api::convert_json_response,
-    {database::orders::OrderFilter, orderbook::Orderbook},
-};
+use crate::{database::orders::OrderFilter, orderbook::Orderbook};
 use anyhow::{Context, Result};
 use model::time::now_in_epoch_seconds;
 use primitive_types::H160;
 use serde::Deserialize;
+use shared::api::{convert_json_response, error, ApiReply};
 use std::{convert::Infallible, sync::Arc};
 use warp::{hyper::StatusCode, Filter, Rejection};
 
@@ -60,14 +58,14 @@ pub fn get_orders_request(
 
 pub fn get_orders(
     orderbook: Arc<Orderbook>,
-) -> impl Filter<Extract = (super::ApiReply,), Error = Rejection> + Clone {
+) -> impl Filter<Extract = (ApiReply,), Error = Rejection> + Clone {
     get_orders_request().and_then(move |order_filter| {
         let orderbook = orderbook.clone();
         async move {
             let order_filter = match order_filter {
                 Ok(order_filter) => order_filter,
                 Err(err) => {
-                    let err = super::error("InvalidOrderFilter", err);
+                    let err = error("InvalidOrderFilter", err);
                     return Ok(warp::reply::with_status(err, StatusCode::BAD_REQUEST));
                 }
             };
